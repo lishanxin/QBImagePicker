@@ -170,7 +170,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
             }
         }];
     }
-    
+
     NSMutableArray *assetCollections = [NSMutableArray array];
 
     // Fetch smart albums
@@ -178,16 +178,48 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
         NSArray *collections = smartAlbums[assetCollectionSubtype];
         
         if (collections) {
-            [assetCollections addObjectsFromArray:collections];
+            for(PHAssetCollection *collection in collections){
+                if([self isHavePhotos:collection] || assetCollections.count == 0){
+                    [assetCollections addObject:collection];
+                }
+            }
+//            [assetCollections addObjectsFromArray:collections];
         }
     }
     
     // Fetch user albums
     [userAlbums enumerateObjectsUsingBlock:^(PHAssetCollection *assetCollection, NSUInteger index, BOOL *stop) {
-        [assetCollections addObject:assetCollection];
+        if([self isHavePhotos:assetCollection]){
+            [assetCollections addObject:assetCollection];
+        }
     }];
     
-    self.assetCollections = assetCollections;
+    self.assetCollections =  assetCollections;
+}
+
+-(BOOL) isHavePhotos:(PHAssetCollection *) assetCollection{
+    
+    PHFetchOptions *options = [self getPHFetchOptions];
+    PHFetchResult *fetchResult = [PHAsset fetchAssetsInAssetCollection:assetCollection options:options];
+    return fetchResult.count > 0;
+}
+
+-(PHFetchOptions *)getPHFetchOptions{
+    PHFetchOptions *options = [PHFetchOptions new];
+    
+    switch (self.imagePickerController.mediaType) {
+        case QBImagePickerMediaTypeImage:
+            options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %ld", PHAssetMediaTypeImage];
+            break;
+            
+        case QBImagePickerMediaTypeVideo:
+            options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %ld", PHAssetMediaTypeVideo];
+            break;
+            
+        default:
+            break;
+    }
+    return options;
 }
 
 - (UIImage *)placeholderImageWithSize:(CGSize)size
@@ -281,20 +313,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     // Thumbnail
     PHAssetCollection *assetCollection = self.assetCollections[indexPath.row];
     
-    PHFetchOptions *options = [PHFetchOptions new];
-    
-    switch (self.imagePickerController.mediaType) {
-        case QBImagePickerMediaTypeImage:
-            options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %ld", PHAssetMediaTypeImage];
-            break;
-            
-        case QBImagePickerMediaTypeVideo:
-            options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %ld", PHAssetMediaTypeVideo];
-            break;
-            
-        default:
-            break;
-    }
+    PHFetchOptions *options = [self getPHFetchOptions];
     
     PHFetchResult *fetchResult = [PHAsset fetchAssetsInAssetCollection:assetCollection options:options];
     PHImageManager *imageManager = [PHImageManager defaultManager];
@@ -371,7 +390,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     dispatch_async(dispatch_get_main_queue(), ^{
         // Update fetch results
         NSMutableArray *fetchResults = [self.fetchResults mutableCopy];
-        
+
         [self.fetchResults enumerateObjectsUsingBlock:^(PHFetchResult *fetchResult, NSUInteger index, BOOL *stop) {
             PHFetchResultChangeDetails *changeDetails = [changeInstance changeDetailsForFetchResult:fetchResult];
             
@@ -380,13 +399,19 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
             }
         }];
         
-        if (![self.fetchResults isEqualToArray:fetchResults]) {
-            self.fetchResults = fetchResults;
-            
-            // Reload albums
-            [self updateAssetCollections];
-            [self.tableView reloadData];
-        }
+        // 旧版本如此，如果会导致一直不刷新数据的bug
+//        if (![self.fetchResults isEqualToArray:fetchResults]) {
+//            self.fetchResults = fetchResults;
+//
+//            // Reload albums
+//            [self updateAssetCollections];
+//            [self.tableView reloadData];
+//        }
+        self.fetchResults = fetchResults;
+        
+        // Reload albums
+        [self updateAssetCollections];
+        [self.tableView reloadData];
     });
 }
 
