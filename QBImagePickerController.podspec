@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.homepage         = "https://github.com/lishanxin/QBImagePicker"
   s.license          = "MIT"
   s.author           = { "questbeat" => "questbeat@gmail.com" }
-  s.source           = { :git => "https://github.com/lishanxin/QBImagePicker.git", :tag => s.version }
+  s.source           = { :git => "https://github.com/lishanxin/QBImagePicker.git"}
   s.social_media_url = "https://twitter.com/questbeat"
   s.source_files     = "QBImagePicker/*.{h,m}"
   s.exclude_files    = "QBImagePicker/QBImagePicker.h"
